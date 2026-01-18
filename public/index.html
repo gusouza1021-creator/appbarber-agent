@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agente de Agendamento - Barbearia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .chat-container {
+                height: 400px;
+            }
+            
+            .card {
+                margin-bottom: 20px;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Chat */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 15px;
+            border-radius: 10px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+        }
+
+        .message.bot .message-content {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-group button {
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .input-group button:hover {
+            background: #764ba2;
+        }
+
+        /* Agendamentos */
+        .agendamentos-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .agendamento-item {
+            background: #f9f9f9;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .agendamento-info {
+            flex: 1;
+        }
+
+        .agendamento-cliente {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .agendamento-detalhes {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .agendamento-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .btn-cancelar {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-cancelar:hover {
+            background: #ff5252;
+        }
+
+        /* Formulário */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-agendar {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-agendar:hover {
+            background: #764ba2;
+        }
+
+        .btn-agendar:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Status */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-pendente {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-confirmado {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-cancelado {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            color: #999;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .btn-exportar {
+            width: 100%;
+            padding: 12px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .btn-exportar:hover {
+            background: #218838;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏪 Agente de Agendamento</h1>
+        <p>Barbearia Novv - Sistema de Testes</p>
+    </div>
+
+    <div class="container">
+        <!-- Chat -->
+        <div class="card">
+            <div class="card-header">💬 Chat com Agente</div>
+            <div class="card-body">
+                <div class="alert alert-info" id="alertInfo">
+                    Converse com o agente para agendar, cancelar ou consultar agendamentos.
+                </div>
+                <div class="chat-container">
+                    <div class="messages" id="messages"></div>
+                    <div class="input-group">
+                        <input type="text" id="messageInput" placeholder="Digite sua mensagem..." />
+                        <button onclick="enviarMensagem()">Enviar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agendamentos -->
+        <div class="card">
+            <div class="card-header">📅 Agendamentos</div>
+            <div class="card-body">
+                <div class="alert alert-success" id="alertSuccess"></div>
+                <div class="alert alert-error" id="alertError"></div>
+
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalAgendamentos">0</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="agendamentosHoje">0</div>
+                        <div class="stat-label">Hoje</div>
+                    </div>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab-button active" onclick="mudarAba('listar', event)">Listar</button>
+                    <button class="tab-button" onclick="mudarAba('criar', event)">Novo</button>
+                </div>
+
+                <!-- Listar -->
+                <div id="listar" class="tab-content active">
+                    <div class="agendamentos-list" id="agendamentosList"></div>
+                    <button class="btn-exportar" onclick="exportarDados()">📥 Exportar CSV</button>
+                </div>
+
+                <!-- Criar -->
+                <div id="criar" class="tab-content">
+                    <div class="form-group">
+                        <label>Nome do Cliente</label>
+                        <input type="text" id="clienteNome" placeholder="João Silva" />
+                    </div>
+                    <div class="form-group">
+                        <label>Telefone</label>
+                        <input type="tel" id="clienteTelefone" placeholder="5585987654321" />
+                    </div>
+                    <div class="form-group">
+                        <label>Serviço</label>
+                        <select id="clienteServico">
+                            <option value="">Selecione um serviço</option>
+                            <option value="Corte de Cabelo">Corte de Cabelo - R$ 50</option>
+                            <option value="Barba">Barba - R$ 30</option>
+                            <option value="Corte + Barba">Corte + Barba - R$ 70</option>
+                            <option value="Design de Barba">Design de Barba - R$ 40</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Data</label>
+                        <input type="date" id="clienteData" />
+                    </div>
+                    <div class="form-group">
+                        <label>Hora</label>
+                        <select id="clienteHora">
+                            <option value="">Selecione um horário</option>
+                        </select>
+                    </div>
+                    <button class="btn-agendar" onclick="criarAgendamento()">✓ Agendar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+        let agendamentos = [];
+
+        // Inicializar
+        window.addEventListener('load', () => {
+            carregarAgendamentos();
+            carregarHorarios();
+            adicionarMensagemBot('Olá! 👋 Bem-vindo ao agente de agendamento. Como posso ajudá-lo?');
+        });
+
+        // Enviar mensagem
+        async function enviarMensagem() {
+            const input = document.getElementById('messageInput');
+            const mensagem = input.value.trim();
+
+            if (!mensagem) return;
+
+            // Adicionar mensagem do usuário
+            adicionarMensagem('user', mensagem);
+            input.value = '';
+
+            // Processar com webhook
+            try {
+                const response = await fetch(`${API_URL}/webhook/mensagens`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        telefone: '5585999999999',
+                        mensagem: mensagem
+                    })
+                });
+
+                const data = await response.json();
+
+                // Simular resposta do agente
+                const resposta = processarIntencao(mensagem);
+                setTimeout(() => {
+                    adicionarMensagemBot(resposta);
+                    carregarAgendamentos();
+                }, 500);
+            } catch (error) {
+                adicionarMensagemBot('❌ Erro ao processar mensagem. Tente novamente.');
+            }
+        }
+
+        // Processar intenção
+        function processarIntencao(mensagem) {
+            const msg = mensagem.toLowerCase();
+
+            if (msg.includes('agendar') || msg.includes('marcar')) {
+                return '📅 Entendi! Você quer agendar um agendamento. Vá para a aba "Novo" e preencha os dados.';
+            }
+            if (msg.includes('cancelar') || msg.includes('desmarcar')) {
+                return '❌ Para cancelar um agendamento, clique no botão "Cancelar" ao lado do agendamento na lista.';
+            }
+            if (msg.includes('horário') || msg.includes('disponível')) {
+                return '⏰ Os horários disponíveis aparecem na aba "Novo" após selecionar a data.';
+            }
+            if (msg.includes('preço') || msg.includes('valor')) {
+                return '💰 Nossos serviços:\n• Corte: R$ 50\n• Barba: R$ 30\n• Corte + Barba: R$ 70\n• Design: R$ 40';
+            }
+            if (msg.includes('olá') || msg.includes('oi')) {
+                return 'Olá! 👋 Como posso ajudá-lo?';
+            }
+
+            return '✓ Mensagem recebida! Como posso ajudá-lo?';
+        }
+
+        // Adicionar mensagem
+        function adicionarMensagem(tipo, texto) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${tipo}`;
+            messageDiv.innerHTML = `<div class="message-content">${texto}</div>`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Adicionar mensagem do bot
+        function adicionarMensagemBot(texto) {
+            adicionarMensagem('bot', texto);
+        }
+
+        // Carregar agendamentos
+        async function carregarAgendamentos() {
+            try {
+                const response = await fetch(`${API_URL}/api/agendamentos`);
+                agendamentos = await response.json();
+
+                // Atualizar stats
+                document.getElementById('totalAgendamentos').textContent = agendamentos.length;
+
+                const hoje = new Date().toISOString().split('T')[0];
+                const agendamentosHoje = agendamentos.filter(a => a.data === hoje).length;
+                document.getElementById('agendamentosHoje').textContent = agendamentosHoje;
+
+                // Listar
+                const lista = document.getElementById('agendamentosList');
+                lista.innerHTML = '';
+
+                if (agendamentos.length === 0) {
+                    lista.innerHTML = '<p style="text-align: center; color: #999;">Nenhum agendamento</p>';
+                    return;
+                }
+
+                agendamentos.forEach(a => {
+                    const statusClass = `status-${a.status}`;
+                    const item = document.createElement('div');
+                    item.className = 'agendamento-item';
+                    item.innerHTML = `
+                        <div class="agendamento-info">
+                            <div class="agendamento-cliente">${a.cliente_nome}</div>
+                            <div class="agendamento-detalhes">
+                                📅 ${a.data} às ${a.hora}
+                                <br>
+                                💇 ${a.servico}
+                                <br>
+                                <span class="status-badge ${statusClass}">${a.status.toUpperCase()}</span>
+                            </div>
+                        </div>
+                        <div class="agendamento-actions">
+                            ${a.status !== 'cancelado' ? `<button class="btn-small btn-cancelar" onclick="cancelarAgendamento('${a.id}')">Cancelar</button>` : ''}
+                        </div>
+                    `;
+                    lista.appendChild(item);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar agendamentos:', error);
+            }
+        }
+
+        // Carregar horários
+        async function carregarHorarios() {
+            const dataInput = document.getElementById('clienteData');
+            const horaSelect = document.getElementById('clienteHora');
+
+            dataInput.addEventListener('change', async () => {
+                const data = dataInput.value;
+                if (!data) return;
+
+                try {
+                    const response = await fetch(`${API_URL}/api/horarios/${data}/corte`);
+                    const horarios = await response.json();
+
+                    horaSelect.innerHTML = '<option value="">Selecione um horário</option>';
+                    horarios.forEach(h => {
+                        if (h.disponivel) {
+                            const option = document.createElement('option');
+                            option.value = h.hora;
+                            option.textContent = h.hora;
+                            horaSelect.appendChild(option);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Erro ao carregar horários:', error);
+                }
+            });
+
+            // Definir data mínima como hoje
+            const hoje = new Date().toISOString().split('T')[0];
+            dataInput.min = hoje;
+        }
+
+        // Criar agendamento
+        async function criarAgendamento() {
+            const nome = document.getElementById('clienteNome').value;
+            const telefone = document.getElementById('clienteTelefone').value;
+            const servico = document.getElementById('clienteServico').value;
+            const data = document.getElementById('clienteData').value;
+            const hora = document.getElementById('clienteHora').value;
+
+            if (!nome || !telefone || !servico || !data || !hora) {
+                mostrarAlerta('error', '❌ Preencha todos os campos!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/agendar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cliente_nome: nome,
+                        telefone: telefone,
+                        servico: servico,
+                        data: data,
+                        hora: hora
+                    })
+                });
+
+                const data_response = await response.json();
+
+                if (data_response.success) {
+                    mostrarAlerta('success', '✅ Agendamento criado com sucesso!');
+                    document.getElementById('clienteNome').value = '';
+                    document.getElementById('clienteTelefone').value = '';
+                    document.getElementById('clienteServico').value = '';
+                    document.getElementById('clienteData').value = '';
+                    document.getElementById('clienteHora').value = '';
+                    carregarAgendamentos();
+                    mudarAba('listar');
+                } else {
+                    mostrarAlerta('error', '❌ Erro ao criar agendamento');
+                }
+            } catch (error) {
+                mostrarAlerta('error', '❌ Erro ao criar agendamento');
+            }
+        }
+
+        // Cancelar agendamento
+        async function cancelarAgendamento(id) {
+            if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/api/agendamentos/${id}/cancelar`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    mostrarAlerta('success', '✅ Agendamento cancelado!');
+                    carregarAgendamentos();
+                } else {
+                    mostrarAlerta('error', '❌ Erro ao cancelar');
+                }
+            } catch (error) {
+                mostrarAlerta('error', '❌ Erro ao cancelar');
+            }
+        }
+
+        // Exportar dados
+        async function exportarDados() {
+            try {
+                const response = await fetch(`${API_URL}/api/exportar-dados`);
+                const csv = await response.text();
+
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'agendamentos.csv';
+                a.click();
+
+                mostrarAlerta('success', '✅ Arquivo exportado!');
+            } catch (error) {
+                mostrarAlerta('error', '❌ Erro ao exportar');
+            }
+        }
+
+        // Mudar aba
+        function mudarAba(aba, evt) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(aba).classList.add('active');
+            if (evt && evt.target) {
+                evt.target.classList.add('active');
+            }
+        }
+
+        // Mostrar alerta
+        function mostrarAlerta(tipo, mensagem) {
+            const alertDiv = document.getElementById(`alert${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+            alertDiv.textContent = mensagem;
+            alertDiv.classList.add('show');
+
+            setTimeout(() => {
+                alertDiv.classList.remove('show');
+            }, 3000);
+        }
+
+        // Enter no input
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('messageInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') enviarMensagem();
+            });
+        });
+    </script>
+</body>
+</html>
